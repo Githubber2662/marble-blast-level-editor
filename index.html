@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marble Blast Level Editor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="panel sidebar">
+        <div class="panel-header">
+          <h1>Marble Blast Editor</h1>
+        </div>
+
+        <section class="section-block">
+          <h2>Palette</h2>
+          <div id="tool-buttons" class="tool-grid"></div>
+        </section>
+
+        <section class="section-block">
+          <h2>Layers</h2>
+          <div id="layer-buttons" class="layer-buttons"></div>
+        </section>
+
+        <section class="section-block">
+          <h2>Actions</h2>
+          <div class="action-group">
+            <button id="new-level">New</button>
+            <button id="export-mis">Export .mis</button>
+            <button id="import-mis">Import .mis</button>
+            <button id="preview-toggle">Preview</button>
+            <button id="delete-selected">Delete</button>
+          </div>
+        </section>
+
+        <section class="section-block">
+          <h2>Mission Script</h2>
+          <textarea id="level-text" spellcheck="false" placeholder="Paste Torque .mis mission data here..."></textarea>
+        </section>
+      </aside>
+
+      <main class="panel main-panel">
+        <div class="canvas-toolbar">
+          <div class="toolbar-title">Mission canvas</div>
+          <button id="fit-canvas" type="button">Fit</button>
+        </div>
+        <canvas id="editor-canvas" width="1120" height="720"></canvas>
+      </main>
+
+      <aside class="panel inspector-panel">
+        <div class="panel-header">
+          <h2>Inspector</h2>
+        </div>
+        <div id="inspector-content"></div>
+      </aside>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
