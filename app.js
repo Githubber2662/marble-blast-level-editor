@@ -3,19 +3,17 @@ const BOARD_WIDTH = 28;
 const BOARD_HEIGHT = 18;
 const LAYER_ORDER = ['base', 'decor', 'trigger'];
 
-const TOOL_DEFS = {
-  select: { label: 'Select', color: '#eaf6ff' },
-  erase: { label: 'Erase', color: '#ff8f8f' },
-  floor: { label: 'Floor', color: '#7db4ff', torqueType: 'StaticShape', dataBlock: 'MBP_Floor' },
-  wall: { label: 'Wall', color: '#9aa7ba', torqueType: 'StaticShape', dataBlock: 'MBP_Wall' },
-  start: { label: 'Start', color: '#48d18d', torqueType: 'Item', dataBlock: 'MBPStartPad' },
-  finish: { label: 'Finish', color: '#ffd76f', torqueType: 'Item', dataBlock: 'MBPFinishPad' },
-  hazard: { label: 'Hazard', color: '#ff7f7f', torqueType: 'Trigger', dataBlock: 'MBPHazardTrigger' },
-  boost: { label: 'Boost', color: '#68d8ff', torqueType: 'Item', dataBlock: 'MBPBoostPad' },
-  checkpoint: { label: 'Checkpoint', color: '#dca6ff', torqueType: 'Trigger', dataBlock: 'MBPCheckpointTrigger' },
-  gem: { label: 'Gem', color: '#ffde59', torqueType: 'Item', dataBlock: 'MBPGem' },
-  teleporter: { label: 'Teleporter', color: '#7ef0d6', torqueType: 'Teleporter', dataBlock: 'MBPTeleporter' },
-  trigger: { label: 'Trigger', color: '#d5a5ff', torqueType: 'Trigger', dataBlock: 'MBPTrigger' },
+const OBJECT_TYPES = {
+  floor: { label: 'Floor', color: '#7db4ff', solid: true, height: 10 },
+  wall: { label: 'Wall', color: '#9aa7ba', solid: true, height: 18 },
+  start: { label: 'Start', color: '#48d18d', solid: false, height: 12 },
+  finish: { label: 'Finish', color: '#ffd76f', solid: false, height: 12 },
+  hazard: { label: 'Hazard', color: '#ff7f7f', solid: false, height: 12 },
+  boost: { label: 'Boost', color: '#68d8ff', solid: false, height: 12 },
+  checkpoint: { label: 'Checkpoint', color: '#dca6ff', solid: false, height: 12 },
+  gem: { label: 'Gem', color: '#ffde59', solid: false, height: 12 },
+  teleporter: { label: 'Teleporter', color: '#7ef0d6', solid: false, height: 12 },
+  erase: { label: 'Erase', color: '#ff8f8f', solid: false, height: 12 },
 };
 
 const state = {
@@ -40,11 +38,10 @@ function clamp(value, min, max) {
 }
 
 function createObject(type, layer, x, y, w = 1, h = 1, extra = {}) {
-  const def = TOOL_DEFS[type] || { color: '#ffffff' };
-  const name = `${type[0].toUpperCase()}${type.slice(1)}_${state.nextId}`;
+  const baseType = OBJECT_TYPES[type] || { color: '#ffffff', height: 12 };
   return {
     id: state.nextId++,
-    name,
+    name: `${type}_${state.nextId}`,
     type,
     layer,
     x: clamp(x, 0, BOARD_WIDTH),
@@ -52,28 +49,36 @@ function createObject(type, layer, x, y, w = 1, h = 1, extra = {}) {
     w: Math.max(1, w || 1),
     h: Math.max(1, h || 1),
     rotation: 0,
+    solid: Boolean(baseType.solid),
     params: {},
-    torqueType: def.torqueType || 'StaticShape',
-    dataBlock: def.dataBlock || 'MBP_Object',
+    height: baseType.height || 12,
     ...extra,
   };
 }
 
-function getDefaultLevel() {
+function getDefaultLevelData() {
   state.nextId = 1;
-  const start = createObject('start', 'base', 2, 13, 1, 1);
-  const finish = createObject('finish', 'base', 22, 3, 1, 1);
-  const floorTop = createObject('floor', 'base', 0, 15, 28, 3);
-  const floorA = createObject('floor', 'base', 6, 11, 6, 1);
-  const floorB = createObject('floor', 'base', 15, 8, 4, 1);
-  const wallA = createObject('wall', 'base', 11, 7, 1, 4);
-  const boostA = createObject('boost', 'base', 8, 9, 1, 1);
-  const hazardA = createObject('hazard', 'base', 18, 13, 3, 1);
-  const gemA = createObject('gem', 'decor', 6, 10, 1, 1, { params: { value: 10 } });
-  const gemB = createObject('gem', 'decor', 16, 7, 1, 1, { params: { value: 10 } });
-  const checkpoint = createObject('checkpoint', 'trigger', 13, 6, 1, 1);
-  const teleporterA = createObject('teleporter', 'trigger', 10, 13, 1, 1, { params: { targetId: null } });
-  const teleporterB = createObject('teleporter', 'trigger', 22, 5, 1, 1, { params: { targetId: null } });
+
+  const start = createObject('start', 'base', 2, 13, 1, 1, { name: 'StartPoint' });
+  const finish = createObject('finish', 'base', 22, 3, 1, 1, { name: 'FinishPad' });
+  const floorTop = createObject('floor', 'base', 0, 15, 28, 3, { name: 'Floor_1' });
+  const floorA = createObject('floor', 'base', 6, 11, 6, 1, { name: 'Floor_2' });
+  const floorB = createObject('floor', 'base', 15, 8, 4, 1, { name: 'Floor_3' });
+  const wallA = createObject('wall', 'base', 11, 7, 1, 4, { name: 'Wall_1' });
+  const boostA = createObject('boost', 'base', 8, 9, 1, 1, { name: 'Boost_1', params: { value: 10 } });
+  const hazardA = createObject('hazard', 'base', 18, 13, 3, 1, { name: 'Hazard_1' });
+  const gemA = createObject('gem', 'decor', 6, 10, 1, 1, { name: 'Gem_1', params: { value: 10 } });
+  const gemB = createObject('gem', 'decor', 16, 7, 1, 1, { name: 'Gem_2', params: { value: 10 } });
+  const checkpoint = createObject('checkpoint', 'trigger', 13, 6, 1, 1, { name: 'Checkpoint_1' });
+
+  const teleporterA = createObject('teleporter', 'trigger', 10, 13, 1, 1, {
+    name: 'Teleport_01',
+    params: { targetId: null, targetName: 'Teleport_02' },
+  });
+  const teleporterB = createObject('teleporter', 'trigger', 22, 5, 1, 1, {
+    name: 'Teleport_02',
+    params: { targetId: null, targetName: 'Teleport_01' },
+  });
 
   teleporterA.params.targetId = teleporterB.id;
   teleporterB.params.targetId = teleporterA.id;
@@ -81,27 +86,56 @@ function getDefaultLevel() {
   return [start, finish, floorTop, floorA, floorB, wallA, boostA, hazardA, gemA, gemB, checkpoint, teleporterA, teleporterB];
 }
 
-function getSelectedObject() {
-  return state.objects.find((obj) => obj.id === state.selectedObjectId) || null;
-}
-
 function setSelectedObject(id) {
   state.selectedObjectId = id;
   renderInspector();
 }
 
+function getSelectedObject() {
+  return state.objects.find((obj) => obj.id === state.selectedObjectId) || null;
+}
+
+function projectWorld(x, z, y = 0) {
+  const scaleX = 28;
+  const scaleY = 16;
+  const originX = canvas.width * 0.56;
+  const originY = canvas.height * 0.72;
+
+  return {
+    x: (x - z) * scaleX + originX,
+    y: (x + z) * scaleY - y * 18 + originY,
+  };
+}
+
+function worldToBoardCell(x, y) {
+  const scaleX = 28;
+  const scaleY = 16;
+  const originX = canvas.width * 0.56;
+  const originY = canvas.height * 0.72;
+  const u = (x - originX) / scaleX;
+  const v = (y - originY) / scaleY;
+  const cellX = Math.round((u + v) / 2);
+  const cellY = Math.round((v - u) / 2);
+  return {
+    cellX: clamp(cellX, 0, BOARD_WIDTH),
+    cellY: clamp(cellY, 0, BOARD_HEIGHT),
+  };
+}
+
 function renderToolButtons() {
-  const tools = ['select', 'erase', 'floor', 'wall', 'start', 'finish', 'hazard', 'boost', 'checkpoint', 'gem', 'teleporter', 'trigger'];
-  toolButtonsEl.innerHTML = tools.map((tool) => {
-    const meta = TOOL_DEFS[tool];
-    const active = state.selectedTool === tool ? 'active' : '';
-    return `
-      <button class="tool-button ${active}" data-tool="${tool}" type="button">
-        <span class="swatch" style="background:${meta.color};"></span>
-        ${meta.label}
-      </button>
-    `;
-  }).join('');
+  const tools = ['select', 'erase', 'floor', 'wall', 'start', 'finish', 'hazard', 'boost', 'checkpoint', 'gem', 'teleporter'];
+  toolButtonsEl.innerHTML = tools
+    .map((tool) => {
+      const meta = tool === 'select' ? { label: 'Select', color: '#eaf6ff' } : OBJECT_TYPES[tool] || { label: tool, color: '#ffffff' };
+      const active = state.selectedTool === tool ? 'active' : '';
+      return `
+        <button class="tool-button ${active}" data-tool="${tool}" type="button">
+          <span class="swatch" style="background:${meta.color};"></span>
+          ${meta.label}
+        </button>
+      `;
+    })
+    .join('');
 
   toolButtonsEl.querySelectorAll('.tool-button').forEach((button) => {
     button.addEventListener('click', () => {
@@ -121,6 +155,7 @@ function renderLayerButtons() {
     const active = state.selectedLayer === layer ? 'active' : '';
     return `<button class="layer-button ${active}" data-layer="${layer}" type="button">${layer}</button>`;
   }).join('');
+
   layerButtonsEl.querySelectorAll('.layer-button').forEach((button) => {
     button.addEventListener('click', () => {
       state.selectedLayer = button.dataset.layer;
@@ -133,13 +168,13 @@ function renderLayerButtons() {
 function renderInspector() {
   const selected = getSelectedObject();
   if (!selected) {
-    inspectorEl.innerHTML = '<p class="empty-state">Select an object to edit its properties. Use the palette and layer buttons to build a level in TorqueScript format.</p>';
+    inspectorEl.innerHTML = '<p class="empty-state">Select an object to edit it here. Add objects from the palette and choose a layer to build a Marble Blast mission.</p>';
     return;
   }
 
   const teleporterOptions = state.objects
     .filter((obj) => obj.type === 'teleporter' && obj.id !== selected.id)
-    .map((obj) => `<option value="${obj.id}" ${String(selected.params.targetId ?? '') === String(obj.id) ? 'selected' : ''}>${obj.name}</option>`)
+    .map((obj) => `<option value="${obj.id}" ${String(selected.params?.targetId ?? '') === String(obj.id) ? 'selected' : ''}>${obj.name}</option>`)
     .join('');
 
   inspectorEl.innerHTML = `
@@ -193,24 +228,21 @@ function renderInspector() {
         </div>
       ` : ''}
 
-      ${selected.type === 'gem' || selected.type === 'boost' ? `
+      ${(selected.type === 'gem' || selected.type === 'boost') ? `
         <div class="control-group">
           <label>Value</label>
-          <input id="prop-value" type="number" min="1" max="100" step="1" value="${selected.params.value ?? 10}" />
+          <input id="prop-value" type="number" min="1" max="100" step="1" value="${selected.params?.value ?? 10}" />
         </div>
       ` : ''}
     </div>
   `;
 
-  const layerInput = document.getElementById('prop-layer');
-  if (layerInput) {
-    layerInput.addEventListener('change', (event) => {
-      const obj = getSelectedObject();
-      if (!obj) return;
-      obj.layer = event.target.value;
-      renderCanvas();
-    });
-  }
+  document.getElementById('prop-layer')?.addEventListener('change', (event) => {
+    const obj = getSelectedObject();
+    if (!obj) return;
+    obj.layer = event.target.value;
+    renderCanvas();
+  });
 
   ['x', 'y', 'w', 'h', 'rotation'].forEach((field) => {
     const input = document.getElementById(`prop-${field}`);
@@ -220,11 +252,13 @@ function renderInspector() {
       if (!obj) return;
       const value = Number(event.target.value);
       if (Number.isNaN(value)) return;
+
       if (field === 'x') obj.x = clamp(value, 0, BOARD_WIDTH);
       if (field === 'y') obj.y = clamp(value, 0, BOARD_HEIGHT);
       if (field === 'w') obj.w = clamp(value, 1, BOARD_WIDTH);
       if (field === 'h') obj.h = clamp(value, 1, BOARD_HEIGHT);
       if (field === 'rotation') obj.rotation = clamp(value, 0, 360);
+
       renderCanvas();
     });
   });
@@ -234,8 +268,9 @@ function renderInspector() {
     targetInput.addEventListener('change', (event) => {
       const obj = getSelectedObject();
       if (!obj) return;
+      const raw = event.target.value;
       obj.params = obj.params || {};
-      obj.params.targetId = event.target.value ? Number(event.target.value) : null;
+      obj.params.targetId = raw ? Number(raw) : null;
       renderCanvas();
     });
   }
@@ -257,14 +292,16 @@ function getCellFromPointer(event) {
   const rect = canvas.getBoundingClientRect();
   const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
   const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
+  const board = worldToBoardCell(x, y);
   return {
-    cellX: Math.floor(x / GRID_SIZE),
-    cellY: Math.floor(y / GRID_SIZE),
+    cellX: board.cellX,
+    cellY: board.cellY,
   };
 }
 
 function findObjectAtCell(cellX, cellY) {
-  return [...state.objects].reverse().find((obj) => {
+  const candidates = [...state.objects].reverse();
+  return candidates.find((obj) => {
     const left = obj.x;
     const top = obj.y;
     const right = obj.x + obj.w;
@@ -276,10 +313,15 @@ function findObjectAtCell(cellX, cellY) {
 function placeObjectAtCell(cellX, cellY) {
   const tool = state.selectedTool;
   if (tool === 'select' || tool === 'erase') return;
-  const object = createObject(tool, state.selectedLayer, cellX, cellY, 1, 1);
+
+  const object = createObject(tool, state.selectedLayer, cellX, cellY, 1, 1, {
+    name: `${tool}_${state.nextId}`,
+  });
+
   if (tool === 'gem' || tool === 'boost') {
     object.params.value = 10;
   }
+
   state.objects.push(object);
   state.selectedObjectId = object.id;
   renderInspector();
@@ -327,123 +369,209 @@ function handleCanvasPointerDown(event) {
   placeObjectAtCell(cellX, cellY);
 }
 
+function drawBox(x, z, w, d, h, fill, stroke = 'rgba(0,0,0,0.35)') {
+  const p00 = projectWorld(x, z, 0);
+  const p10 = projectWorld(x + w, z, 0);
+  const p01 = projectWorld(x, z + d, 0);
+  const p11 = projectWorld(x + w, z + d, 0);
+
+  const t00 = projectWorld(x, z, h);
+  const t10 = projectWorld(x + w, z, h);
+  const t01 = projectWorld(x, z + d, h);
+  const t11 = projectWorld(x + w, z + d, h);
+
+  ctx.beginPath();
+  ctx.moveTo(t00.x, t00.y);
+  ctx.lineTo(t10.x, t10.y);
+  ctx.lineTo(t11.x, t11.y);
+  ctx.lineTo(t01.x, t01.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(p00.x, p00.y);
+  ctx.lineTo(p10.x, p10.y);
+  ctx.lineTo(t10.x, t10.y);
+  ctx.lineTo(t00.x, t00.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(p00.x, p00.y);
+  ctx.lineTo(p01.x, p01.y);
+  ctx.lineTo(t01.x, t01.y);
+  ctx.lineTo(t00.x, t00.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.stroke();
+}
+
+function drawDiamond(x, z, w, d, h, fill) {
+  const center = projectWorld(x + w / 2, z + d / 2, h);
+  const top = projectWorld(x + w / 2, z + d / 2, h + 18);
+  const left = projectWorld(x + w / 2 - 0.5, z + d / 2, h);
+  const right = projectWorld(x + w / 2 + 0.5, z + d / 2, h);
+  const front = projectWorld(x + w / 2, z + d / 2 + 0.8, h);
+  const back = projectWorld(x + w / 2, z + d / 2 - 0.8, h);
+
+  ctx.beginPath();
+  ctx.moveTo(top.x, top.y);
+  ctx.lineTo(right.x, right.y);
+  ctx.lineTo(center.x, center.y);
+  ctx.lineTo(left.x, left.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(top.x, top.y);
+  ctx.lineTo(front.x, front.y);
+  ctx.lineTo(center.x, center.y);
+  ctx.lineTo(back.x, back.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+function drawMarker(x, z, r, color) {
+  const p = projectWorld(x + 0.5, z + 0.5, 0);
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - 8, r, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
 function getObjectColor(obj) {
-  return (TOOL_DEFS[obj.type] || { color: '#ffffff' }).color;
+  return (OBJECT_TYPES[obj.type] || { color: '#ffffff' }).color;
+}
+
+function getObjectHeight(obj) {
+  const meta = OBJECT_TYPES[obj.type] || { height: 12 };
+  return meta.height || 12;
 }
 
 function drawObject(obj) {
-  const px = obj.x * GRID_SIZE;
-  const py = obj.y * GRID_SIZE;
-  const pw = obj.w * GRID_SIZE;
-  const ph = obj.h * GRID_SIZE;
-
-  ctx.save();
-  ctx.translate(px + pw / 2, py + ph / 2);
-  ctx.rotate((obj.rotation * Math.PI) / 180);
-  ctx.translate(-(px + pw / 2), -(py + ph / 2));
-
+  const x = obj.x;
+  const z = obj.y;
+  const w = obj.w;
+  const d = obj.h;
   const color = getObjectColor(obj);
-  ctx.fillStyle = color;
-  ctx.strokeStyle = 'rgba(0,0,0,0.32)';
-  ctx.lineWidth = 2;
+  const height = getObjectHeight(obj);
 
   if (obj.type === 'floor' || obj.type === 'wall') {
-    ctx.fillRect(px, py, pw, ph);
+    drawBox(x, z, w, d, height, color);
   } else if (obj.type === 'start') {
-    ctx.beginPath();
-    ctx.arc(px + pw / 2, py + ph / 2, Math.min(pw, ph) / 2 - 2, 0, Math.PI * 2);
-    ctx.fill();
+    drawBox(x, z, w, d, 10, color);
+    drawMarker(x, z, 10, '#c5ffd6');
   } else if (obj.type === 'finish') {
-    ctx.fillRect(px + 4, py + 4, pw - 8, ph - 8);
+    drawBox(x, z, w, d, 12, color);
+    drawMarker(x, z, 9, '#fff2b4');
   } else if (obj.type === 'hazard') {
-    ctx.beginPath();
-    ctx.moveTo(px, py + ph);
-    ctx.lineTo(px + 8, py + 4);
-    ctx.lineTo(px + 16, py + ph);
-    ctx.lineTo(px + 24, py + 4);
-    ctx.lineTo(px + 32, py + ph);
-    ctx.closePath();
-    ctx.fill();
+    drawBox(x, z, w, d, 8, color);
+    drawMarker(x, z, 8, '#ffd0d0');
   } else if (obj.type === 'boost') {
-    ctx.beginPath();
-    ctx.moveTo(px + 3, py + ph - 3);
-    ctx.lineTo(px + pw - 3, py + ph / 2);
-    ctx.lineTo(px + 3, py + 3);
-    ctx.closePath();
-    ctx.fill();
+    drawBox(x, z, w, d, 10, color);
+    drawMarker(x, z, 8, '#d8f6ff');
   } else if (obj.type === 'checkpoint') {
-    ctx.fillRect(px + 8, py + 2, pw - 16, ph - 4);
-    ctx.fillStyle = '#0d141c';
-    ctx.fillRect(px + 12, py + 7, pw - 24, ph - 14);
+    drawBox(x, z, w, d, 10, color);
   } else if (obj.type === 'gem') {
-    ctx.beginPath();
-    ctx.moveTo(px + pw / 2, py);
-    ctx.lineTo(px + pw, py + ph / 2);
-    ctx.lineTo(px + pw / 2, py + ph);
-    ctx.lineTo(px, py + ph / 2);
-    ctx.closePath();
-    ctx.fill();
+    drawDiamond(x, z, w, d, 0, color);
   } else if (obj.type === 'teleporter') {
+    drawBox(x, z, w, d, 10, color);
+    const p = projectWorld(x + w / 2, z + d / 2, 14);
     ctx.beginPath();
-    ctx.arc(px + pw / 2, py + ph / 2, Math.min(pw, ph) / 2 - 3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#0b161d';
-    ctx.fillRect(px + 6, py + 10, pw - 12, ph - 20);
-  } else if (obj.type === 'trigger') {
-    ctx.fillRect(px + 3, py + 3, pw - 6, ph - 6);
+    ctx.fill();
   }
-
-  ctx.restore();
 
   if (obj.type === 'teleporter' && obj.params?.targetId != null) {
     const target = state.objects.find((item) => item.id === Number(obj.params.targetId));
     if (target) {
-      const sourceX = (obj.x + obj.w / 2) * GRID_SIZE;
-      const sourceY = (obj.y + obj.h / 2) * GRID_SIZE;
-      const targetX = (target.x + target.w / 2) * GRID_SIZE;
-      const targetY = (target.y + target.h / 2) * GRID_SIZE;
+      const a = projectWorld(obj.x + obj.w / 2, obj.y + obj.h / 2, 12);
+      const b = projectWorld(target.x + target.w / 2, target.y + target.h / 2, 12);
       ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
       ctx.strokeStyle = '#7ef0d6';
       ctx.lineWidth = 2;
-      ctx.moveTo(sourceX, sourceY);
-      ctx.lineTo(targetX, targetY);
       ctx.stroke();
     }
   }
 
   if (state.selectedObjectId === obj.id) {
+    const top = projectWorld(obj.x, obj.y, getObjectHeight(obj) + 2);
+    const topR = projectWorld(obj.x + obj.w, obj.y, getObjectHeight(obj) + 2);
+    const topB = projectWorld(obj.x + obj.w, obj.y + obj.h, getObjectHeight(obj) + 2);
+    const topL = projectWorld(obj.x, obj.y + obj.h, getObjectHeight(obj) + 2);
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y);
+    ctx.lineTo(topR.x, topR.y);
+    ctx.lineTo(topB.x, topB.y);
+    ctx.lineTo(topL.x, topL.y);
+    ctx.closePath();
     ctx.strokeStyle = '#fff4a4';
     ctx.lineWidth = 2;
-    ctx.strokeRect(px - 2, py - 2, pw + 4, ph + 4);
+    ctx.stroke();
   }
 }
 
-function renderGrid() {
+function renderGrid3D() {
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 1;
+
   for (let x = 0; x <= BOARD_WIDTH; x += 1) {
+    const a = projectWorld(x, 0, 0);
+    const b = projectWorld(x, BOARD_HEIGHT, 0);
     ctx.beginPath();
-    ctx.moveTo(x * GRID_SIZE + 0.5, 0);
-    ctx.lineTo(x * GRID_SIZE + 0.5, canvas.height);
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
     ctx.stroke();
   }
-  for (let y = 0; y <= BOARD_HEIGHT; y += 1) {
+
+  for (let z = 0; z <= BOARD_HEIGHT; z += 1) {
+    const a = projectWorld(0, z, 0);
+    const b = projectWorld(BOARD_WIDTH, z, 0);
     ctx.beginPath();
-    ctx.moveTo(0, y * GRID_SIZE + 0.5);
-    ctx.lineTo(canvas.width, y * GRID_SIZE + 0.5);
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
     ctx.stroke();
   }
+
+  const baseA = projectWorld(0, 0, 0);
+  const baseB = projectWorld(BOARD_WIDTH, 0, 0);
+  const baseC = projectWorld(0, BOARD_HEIGHT, 0);
+  const baseD = projectWorld(BOARD_WIDTH, BOARD_HEIGHT, 0);
+  ctx.beginPath();
+  ctx.moveTo(baseA.x, baseA.y);
+  ctx.lineTo(baseB.x, baseB.y);
+  ctx.lineTo(baseD.x, baseD.y);
+  ctx.lineTo(baseC.x, baseC.y);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.stroke();
 }
 
 function renderCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#0b161d';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  renderGrid();
 
-  state.objects
+  renderGrid3D();
+
+  const visible = state.objects
     .filter((obj) => obj.layer === state.selectedLayer || obj.layer !== 'trigger')
-    .forEach(drawObject);
+    .sort((a, b) => (a.y + a.h) - (b.y + b.h));
+
+  visible.forEach(drawObject);
 
   if (state.preview && state.previewBall) {
     ctx.fillStyle = '#f5f0d0';
@@ -456,17 +584,18 @@ function renderCanvas() {
 function resetPreview() {
   const start = state.objects.find((obj) => obj.type === 'start');
   state.previewBall = {
-    x: ((start ? start.x + 0.5 : 2) * GRID_SIZE),
-    y: ((start ? start.y + 0.5 : 2) * GRID_SIZE),
-    vx: 1.6,
+    x: (start ? start.x + 0.5 : 2) * GRID_SIZE,
+    y: (start ? start.y + 0.5 : 2) * GRID_SIZE,
+    vx: 1.4,
     vy: 0,
   };
 }
 
 function previewStep() {
   if (!state.preview || !state.previewBall) return;
+
   const ball = state.previewBall;
-  ball.vy += 0.38;
+  ball.vy += 0.4;
   ball.x += ball.vx;
   ball.y += ball.vy;
 
@@ -477,10 +606,14 @@ function previewStep() {
 
   for (const obj of state.objects) {
     if (obj.type === 'floor' || obj.type === 'wall') {
-      const rect = { x: obj.x * GRID_SIZE, y: obj.y * GRID_SIZE, w: obj.w * GRID_SIZE, h: obj.h * GRID_SIZE };
+      const rect = {
+        x: obj.x * GRID_SIZE,
+        y: obj.y * GRID_SIZE,
+        w: obj.w * GRID_SIZE,
+        h: obj.h * GRID_SIZE,
+      };
       const ballRect = { x: ball.x - 12, y: ball.y - 12, w: 24, h: 24 };
-      const intersects = ballRect.x < rect.x + rect.w && ballRect.x + ballRect.w > rect.x && ballRect.y < rect.y + rect.h && ballRect.y + ballRect.h > rect.y;
-      if (intersects) {
+      if (ballRect.x < rect.x + rect.w && ballRect.x + ballRect.w > rect.x && ballRect.y < rect.y + rect.h && ballRect.y + ballRect.h > rect.y) {
         if (ball.y + 12 >= rect.y && ball.y - 12 < rect.y + rect.h) {
           ball.vy *= -0.48;
           ball.y = rect.y - 12;
@@ -507,191 +640,303 @@ function togglePreview() {
   }
 }
 
-function getLevelName() {
-  return 'Level_01';
-}
-
-function buildTorqueObject(obj) {
-  const lines = [];
-  const pos = `${(obj.x + obj.w / 2).toFixed(2)} ${(obj.y + obj.h / 2).toFixed(2)} 1`;
-  const size = `${obj.w.toFixed(2)} ${obj.h.toFixed(2)} 1`;
-  const objectName = obj.name || `${obj.type}_${obj.id}`;
+function serializeMissionObject(obj) {
+  const position = `${(obj.x + obj.w / 2).toFixed(2)} ${(obj.y + obj.h / 2).toFixed(2)} 0.00`;
+  const scale = `${obj.w.toFixed(2)} ${obj.h.toFixed(2)} 1.00`;
+  const name = obj.name || `${obj.type}_${obj.id}`;
 
   if (obj.type === 'teleporter') {
-    const target = state.objects.find((item) => item.id === Number(obj.params?.targetId));
-    lines.push(`new Teleporter(${objectName})`);
-    lines.push('{');
-    lines.push(`   dataBlock = "${obj.dataBlock}";`);
-    lines.push(`   position = "${pos}";`);
-    lines.push(`   target = "${target ? target.name : 'None'}";`);
-    lines.push(`   layer = "${obj.layer}";`);
-    lines.push('};');
-    return lines.join('\n');
+    const targetName = obj.params?.targetName || `Teleport_${obj.id}`;
+    return [
+      `   new Trigger(${name}) {`,
+      `      position = "${position}";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "5 5 5";`,
+      `      dataBlock = "TeleportTrigger";`,
+      `      polyhedron = "0.0000000 0.0000000 0.0000000 1.0000000 0.0000000 0.0000000 0.0000000 -1.0000000 0.0000000 0.0000000 0.0000000 1.0000000";`,
+      `      destination = "${targetName}";`,
+      `   };`,
+      ``,
+      `   new Trigger(${obj.params?.targetName || `${name}_Dest`}) {`,
+      `      position = "${(obj.x + obj.w / 2).toFixed(2)} ${(obj.y + obj.h / 2).toFixed(2)} 0.00";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "5 5 5";`,
+      `      dataBlock = "DestinationTrigger";`,
+      `      polyhedron = "0.0000000 0.0000000 0.0000000 1.0000000 0.0000000 0.0000000 0.0000000 -1.0000000 0.0000000 0.0000000 0.0000000 1.0000000";`,
+      `   };`,
+    ].join('\n');
   }
 
-  if (obj.type === 'gem' || obj.type === 'boost' || obj.type === 'start' || obj.type === 'finish') {
-    lines.push(`new Item(${objectName})`);
-    lines.push('{');
-    lines.push(`   dataBlock = "${obj.dataBlock}";`);
-    lines.push(`   position = "${pos}";`);
-    if (obj.params?.value != null) lines.push(`   value = ${obj.params.value};`);
-    lines.push(`   layer = "${obj.layer}";`);
-    lines.push('};');
-    return lines.join('\n');
+  if (obj.type === 'start') {
+    return [
+      `   new StaticShape(${name}) {`,
+      `      position = "${position}";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "1 1 1";`,
+      `      dataBlock = "StartPad";`,
+      `   };`,
+    ].join('\n');
   }
 
-  if (obj.type === 'checkpoint' || obj.type === 'hazard' || obj.type === 'trigger') {
-    lines.push(`new Trigger(${objectName})`);
-    lines.push('{');
-    lines.push(`   dataBlock = "${obj.dataBlock}";`);
-    lines.push(`   position = "${pos}";`);
-    lines.push(`   triggerArea = "${size}";`);
-    lines.push(`   layer = "${obj.layer}";`);
-    lines.push('};');
-    return lines.join('\n');
+  if (obj.type === 'finish') {
+    return [
+      `   new StaticShape(${name}) {`,
+      `      position = "${position}";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "1 1 1";`,
+      `      dataBlock = "FinishPad";`,
+      `   };`,
+    ].join('\n');
   }
 
-  lines.push(`new StaticShape(${objectName})`);
-  lines.push('{');
-  lines.push(`   dataBlock = "${obj.dataBlock}";`);
-  lines.push(`   position = "${pos}";`);
-  lines.push(`   size = "${size}";`);
-  lines.push(`   rotation = "1 0 0 0";`);
-  lines.push(`   layer = "${obj.layer}";`);
-  lines.push('};');
-  return lines.join('\n');
+  if (obj.type === 'gem') {
+    return [
+      `   new Item() {`,
+      `      position = "${position}";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "1 1 1";`,
+      `      dataBlock = "GemItem";`,
+      `      collideable = "0";`,
+      `      static = "1";`,
+      `      rotate = "1";`,
+      `      pickUpCheckpoint = "0";`,
+      `   };`,
+    ].join('\n');
+  }
+
+  if (obj.type === 'checkpoint') {
+    return [
+      `   new StaticShape(${name}) {`,
+      `      position = "${position}";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "1 1 1";`,
+      `      dataBlock = "checkPoint";`,
+      `   };`,
+    ].join('\n');
+  }
+
+  if (obj.type === 'hazard') {
+    return [
+      `   new Trigger(${name}) {`,
+      `      position = "${position}";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "${Math.max(3, obj.w)} ${Math.max(3, obj.h)} 3";`,
+      `      dataBlock = "HazardTrigger";`,
+      `      polyhedron = "0.0000000 0.0000000 0.0000000 1.0000000 0.0000000 0.0000000 0.0000000 -1.0000000 0.0000000 0.0000000 0.0000000 1.0000000";`,
+      `   };`,
+    ].join('\n');
+  }
+
+  if (obj.type === 'boost') {
+    return [
+      `   new Item() {`,
+      `      position = "${position}";`,
+      `      rotation = "1 0 0 0";`,
+      `      scale = "1 1 1";`,
+      `      dataBlock = "SuperJumpItem";`,
+      `      collideable = "0";`,
+      `      static = "1";`,
+      `      rotate = "1";`,
+      `   };`,
+    ].join('\n');
+  }
+
+  return [
+    `   new StaticShape(${name}) {`,
+    `      position = "${position}";`,
+    `      rotation = "1 0 0 0";`,
+    `      scale = "${scale}";`,
+    `      dataBlock = "${obj.type === 'floor' ? 'MBP_Floor' : obj.type === 'wall' ? 'MBP_Wall' : 'StaticShape'}";`,
+    `   };`,
+  ].join('\n');
 }
 
-function exportTorqueScript() {
-  const levelName = getLevelName();
-  const lines = [];
-  lines.push('% Auto-generated by Marble Blast Editor');
-  lines.push('');
-  lines.push(`singleton LevelInfo(${levelName})`);
-  lines.push('{');
-  lines.push(`   levelName = "${levelName}";`);
-  lines.push('   description = "Generated by Marble Blast Editor";');
-  lines.push(`   width = ${BOARD_WIDTH};`);
-  lines.push(`   height = ${BOARD_HEIGHT};`);
-  lines.push('   theme = "forest";');
-  lines.push('   gravity = 20;');
+function exportMission() {
   const start = state.objects.find((obj) => obj.type === 'start');
   const finish = state.objects.find((obj) => obj.type === 'finish');
-  if (start) lines.push(`   startPosition = "${(start.x + 0.5).toFixed(2)} ${(start.y + 0.5).toFixed(2)} 1";`);
-  if (finish) lines.push(`   finishPosition = "${(finish.x + 0.5).toFixed(2)} ${(finish.y + 0.5).toFixed(2)} 1";`);
-  lines.push(`   gemCount = ${state.objects.filter((obj) => obj.type === 'gem').length};`);
-  lines.push('};');
+  const missionName = 'MarbleBlastLevel';
+
+  const lines = [];
+  lines.push('//--- OBJECT WRITE BEGIN ---');
+  lines.push('new SimGroup(MissionGroup) {');
   lines.push('');
-  lines.push(`new SimGroup(${levelName}Group)`);
-  lines.push('{');
-  state.objects.forEach((obj) => {
-    lines.push('   ' + buildTorqueObject(obj).replace(/\n/g, '\n   '));
+  lines.push('   new ScriptObject(MissionInfo) {');
+  lines.push(`      name = "${missionName}";`);
+  lines.push(`      level = "1";`);
+  lines.push(`      type = "Custom";`);
+  lines.push(`      artist = "Marble Blast Editor";`);
+  lines.push(`      desc = "Generated by Marble Blast Editor";`);
+  lines.push(`      startHelpText = "Welcome!";`);
+  lines.push('   };');
+  lines.push('');
+  lines.push('   new MissionArea(MissionArea) {');
+  lines.push('      area = "-360 -648 720 1296";');
+  lines.push('      flightCeiling = "300";');
+  lines.push('      flightCeilingRange = "20";');
+  lines.push('      locked = "true";');
+  lines.push('   };');
+  lines.push('');
+  lines.push('   new Sky(Sky) {');
+  lines.push('      position = "336 136 0";');
+  lines.push('      rotation = "1 0 0 0";');
+  lines.push('      scale = "1 1 1";');
+  lines.push('      materialList = "~/data/skies/sky_day.dml";');
+  lines.push('      visibleDistance = "500";');
+  lines.push('      useSkyTextures = "1";');
+  lines.push('      renderBottomTexture = "1";');
+  lines.push('      SkySolidColor = "0.600000 0.600000 0.600000 1.000000";');
+  lines.push('      fogDistance = "300";');
+  lines.push('      fogColor = "0.600000 0.600000 0.600000 1.000000";');
+  lines.push('   };');
+  lines.push('');
+  lines.push('   new Sun() {');
+  lines.push('      direction = "0.514393 0.603723 -0.609031";');
+  lines.push('      color = "1.400000 1.200000 0.400000 1.000000";');
+  lines.push('      ambient = "0.300000 0.300000 0.400000 1.000000";');
+  lines.push('   };');
+
+  if (start) {
     lines.push('');
+    lines.push(`   new StaticShape(StartPoint) {`);
+    lines.push(`      position = "${(start.x + 0.5).toFixed(2)} ${(start.y + 0.5).toFixed(2)} 0.00";`);
+    lines.push('      rotation = "1 0 0 0";');
+    lines.push('      scale = "1 1 1";');
+    lines.push('      dataBlock = "StartPad";');
+    lines.push('   };');
+  }
+
+  if (finish) {
+    lines.push('');
+    lines.push(`   new StaticShape(FinishPad) {`);
+    lines.push(`      position = "${(finish.x + 0.5).toFixed(2)} ${(finish.y + 0.5).toFixed(2)} 0.00";`);
+    lines.push('      rotation = "1 0 0 0";');
+    lines.push('      scale = "1 1 1";');
+    lines.push('      dataBlock = "FinishPad";');
+    lines.push('   };');
+  }
+
+  state.objects.forEach((obj) => {
+    if (obj.type === 'start' || obj.type === 'finish') return;
+    lines.push('');
+    lines.push(serializeMissionObject(obj));
   });
+
   lines.push('};');
+  const text = lines.join('\n');
+  levelTextEl.value = text;
 
-  const torqueText = lines.join('\n');
-  levelTextEl.value = torqueText;
-
-  const blob = new Blob([torqueText], { type: 'text/plain' });
+  const blob = new Blob([text], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${levelName}.cs`;
-  a.click();
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${missionName}.mis`;
+  link.click();
   URL.revokeObjectURL(url);
 }
 
-function parseTorqueStringValue(value) {
-  const cleaned = (value || '').replace(/['"]/g, '').trim();
-  if (!cleaned) return '';
-  return cleaned;
+function parseMissionValue(raw) {
+  if (raw == null) return '';
+  return String(raw).replace(/^"|"$/g, '').trim();
 }
 
-function importTorqueScript() {
+function importMission() {
   try {
     const text = levelTextEl.value.trim();
-    if (!text) throw new Error('No TorqueScript level supplied.');
+    if (!text) throw new Error('No mission data supplied.');
 
-    const objectMatches = [...text.matchAll(/new\s+(\w+)\s*\(\s*([A-Za-z0-9_]+)\s*\)\s*\{([\s\S]*?)\};/g)];
+    const objectMatches = [...text.matchAll(/new\s+(\w+)\s*(?:\(([^)]*)\))?\s*\{([\s\S]*?)\};/g)];
 
     const imported = [];
     objectMatches.forEach((match) => {
-      const [, torqueType, rawName, block] = match;
+      const [, className, instanceNameRaw, block] = match;
+      const instanceName = (instanceNameRaw || '').trim();
       const fields = {};
-      let fieldMatch;
       const fieldRegex = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:"([^"]*)"|([^;]+));/g;
+      let fieldMatch;
       while ((fieldMatch = fieldRegex.exec(block))) {
         const [, key, quoted, unquoted] = fieldMatch;
         fields[key] = quoted !== undefined ? quoted : unquoted?.trim();
       }
 
-      const positionValue = fields.position || '0 0 1';
-      const sizeValue = fields.size || '1 1 1';
-      const [posX, posY] = positionValue.split(/\s+/).map(Number);
-      const [sizeW, sizeH] = sizeValue.split(/\s+/).map(Number);
-      const layer = (fields.layer || 'base').trim();
+      const dataBlock = parseMissionValue(fields.dataBlock || '');
+      const position = parseMissionValue(fields.position || '0 0 0');
+      const scale = parseMissionValue(fields.scale || '1 1 1');
+      const [xRaw, yRaw] = position.split(/\s+/).map(Number);
+      const [sxRaw, syRaw] = scale.split(/\s+/).map(Number);
+      const x = Number.isFinite(xRaw) ? xRaw : 0;
+      const y = Number.isFinite(yRaw) ? yRaw : 0;
+      const w = Number.isFinite(sxRaw) ? Math.max(1, Math.round(sxRaw)) : 1;
+      const h = Number.isFinite(syRaw) ? Math.max(1, Math.round(syRaw)) : 1;
 
       let type = 'floor';
-      const dataBlock = String(fields.dataBlock || '').trim();
-      if (dataBlock.includes('Finish') || torqueType === 'Item' && /Finish/.test(dataBlock)) type = 'finish';
-      else if (dataBlock.includes('Start') || torqueType === 'Item' && /Start/.test(dataBlock)) type = 'start';
-      else if (dataBlock.includes('Gem')) type = 'gem';
-      else if (dataBlock.includes('Teleporter')) type = 'teleporter';
-      else if (dataBlock.includes('Checkpoint') || dataBlock.includes('Trigger')) type = 'checkpoint';
-      else if (dataBlock.includes('Hazard')) type = 'hazard';
-      else if (dataBlock.includes('Boost')) type = 'boost';
-      else if (dataBlock.includes('Wall')) type = 'wall';
-      else if (dataBlock.includes('Floor')) type = 'floor';
+      if (/StartPad/.test(dataBlock)) type = 'start';
+      else if (/FinishPad/.test(dataBlock)) type = 'finish';
+      else if (/Gem/.test(dataBlock)) type = 'gem';
+      else if (/Teleport/.test(dataBlock)) type = 'teleporter';
+      else if (/checkPoint|Checkpoint/.test(dataBlock)) type = 'checkpoint';
+      else if (/Hazard/.test(dataBlock)) type = 'hazard';
+      else if (/SuperJumpItem/.test(dataBlock)) type = 'boost';
+      else if (/Wall/.test(dataBlock)) type = 'wall';
+      else if (/Floor/.test(dataBlock)) type = 'floor';
+      else if (/Trigger/.test(className)) type = 'checkpoint';
 
-      const obj = createObject(type, layer, Math.floor(posX), Math.floor(posY), Math.max(1, Math.ceil(sizeW || 1)), Math.max(1, Math.ceil(sizeH || 1)), {
-        name: rawName,
-        torqueType,
-        dataBlock,
+      const obj = createObject(type, 'base', Math.max(0, Math.round(x)), Math.max(0, Math.round(y)), Math.max(1, w), Math.max(1, h), {
+        name: instanceName || `${type}_${imported.length + 1}`,
         params: {},
       });
 
-      obj.params = obj.params || {};
-      if (fields.target) obj.params.targetId = null;
+      if (fields.destination) {
+        obj.params.targetName = fields.destination;
+        obj.params.targetId = null;
+      }
       if (fields.value) obj.params.value = Number(fields.value);
-      if (fields.layer) obj.layer = fields.layer;
-      if (rawName) obj.name = rawName;
+      if (obj.type === 'teleporter') obj.layer = 'trigger';
+      if (obj.type === 'checkpoint' || obj.type === 'hazard') obj.layer = 'trigger';
+      if (obj.type === 'gem' || obj.type === 'boost') obj.layer = 'decor';
+
       imported.push(obj);
     });
 
-    if (!imported.length) throw new Error('No valid objects were found in the TorqueScript content.');
+    if (!imported.length) throw new Error('No valid mission objects were found.');
 
     state.objects = imported;
     state.selectedObjectId = null;
     renderInspector();
     renderCanvas();
   } catch (error) {
-    alert(`Failed to import TorqueScript: ${error.message}`);
+    alert(`Failed to import mission: ${error.message}`);
   }
 }
 
 function createNewLevel() {
-  state.objects = getDefaultLevel();
+  state.objects = getDefaultLevelData();
   state.selectedObjectId = null;
   renderInspector();
   renderCanvas();
 }
 
+function fitCanvas() {
+  renderCanvas();
+}
+
 function bindEvents() {
   document.getElementById('new-level').addEventListener('click', createNewLevel);
-  document.getElementById('export-torque').addEventListener('click', exportTorqueScript);
-  document.getElementById('import-torque').addEventListener('click', importTorqueScript);
+  document.getElementById('export-mis').addEventListener('click', exportMission);
+  document.getElementById('import-mis').addEventListener('click', importMission);
   document.getElementById('preview-toggle').addEventListener('click', togglePreview);
   document.getElementById('delete-selected').addEventListener('click', deleteSelectedObject);
-  document.getElementById('fit-canvas').addEventListener('click', renderCanvas);
+  document.getElementById('fit-canvas').addEventListener('click', fitCanvas);
   canvas.addEventListener('pointerdown', handleCanvasPointerDown);
+
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Delete' || event.key === 'Backspace') deleteSelectedObject();
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      deleteSelectedObject();
+    }
   });
 }
 
 function init() {
-  state.objects = getDefaultLevel();
+  state.objects = getDefaultLevelData();
   renderToolButtons();
   renderLayerButtons();
   renderInspector();
